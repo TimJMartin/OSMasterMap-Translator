@@ -21,6 +21,7 @@ const translateData = () => {
     const source_directory = config[update_product].source_path;
     const file_extension = config[update_product].file_extension;
     const schema_name = config[update_product].schema_name;
+    const update_schema = config[update_product].update_schema;
     const ogr_format = config[update_product].ogr_format;
     const postProcesses = config[update_product].post_processes;
 
@@ -55,11 +56,11 @@ const translateData = () => {
                     callback(null, response);
                 }
             });
-        },
+        }, 
         function(response, callback) {
             logger.log('info', 'Post processing database tables');
             async.each(postProcesses, function(file, callback) {
-                database.postProcess(db, file, schema_name, release, function(response) {
+                database.postProcess(db, file, schema_name, release, update_schema, function(response) {
                     if (response === 'processed') {
                     callback();
                     }
