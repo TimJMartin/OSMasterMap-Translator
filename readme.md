@@ -46,7 +46,7 @@ OSMasterMap Translator requires the following
 How to use OSMasterMap Translator
 -----------------------------------
 
-1. Download the source files from GtiHub
+1. Download the source files from GitHub
 2. Run ```npm install``` to install all the required node_modules
 3. Update the config/index.js file to match your configuration. Likely changes would be to the update_product, release, database_connection and then change the source_path
 4. Save the config.index.js file
@@ -59,7 +59,7 @@ Post Processing
 To get the most out of OS MasterMap Topography Layer it can sometimes be important to post process the data. The OSMasterMap Translator (depending on the update_product) does a mixture of post processing tasks.
 
 1. Creates the style_description and style_code columsn which can then be used to style from
-2. Cartographci Text has extra specific changes to make styling the text as easy as possibly depdning on end software.
+2. Cartographic Text has extra specific changes to make styling the text as easy as possibly depdning on end software.
     * Font Code
     * Colour Code
     * Rotation - this is orientation/10
@@ -87,6 +87,7 @@ Performance tests have been run against TOPO_GEO and TOPO_GEO_COU for the 100km 
 
 * TOPO_GEO intial load in 37 minutes 
 * TOPO_GEO post processing (removing duplicates and adding styling columns and indexing) taking an extra 1 hour 5 minutes. 
+
 **Total Time: 1hr42minutes**
 
 * TOPO_GEO_COU applied to the above schema takes 5 minutes 48 seconds
