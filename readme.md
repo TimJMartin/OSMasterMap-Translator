@@ -18,6 +18,8 @@ Folder Structure
         * ogr_format - for .gz files we use /vsigzip/ so that the data can be read directly without uncompressing the files
         * schema_name - this is the database schema you want the data to be loaded into
         * post_processes - contains an array of SQL file names in the database/sql folder that will be used to post process the data. 
+    * TOPO_GEO - this is the Geographic chunked version of OS MasterMap Topography Layer.
+        * uses the same options as above 
 * database - this uses pg-promise to create the database tables and post process them
     * sql - contains all the required SQL files to create the tables and post processing
 * loader - uses child_process to run the correct OGR2OGR command using the config variables. Uses Progress to show user the loading progress
@@ -45,3 +47,28 @@ How to use OSMasterMap Translator
 4. Save the config.index.js file
 5. Open a terminal or command prompt window in the folder containing the index.js file and run ```node index.js```
 6. The logs will show you the progress or report any errors.
+
+Post Processing
+----------------
+
+To get the most out of OS MasterMap Topography Layer it can sometimes be important to post process the data. The OSMasterMap Translator (depending on the update_product) does a mixture of post processing tasks.
+
+1. Creates the style_description and style_code columsn which can then be used to style from
+2. Cartographci Text has extra specific changes to make styling the text as easy as possibly depdning on end software.
+    * Font Code
+    * Colour Code
+    * Rotation - this is orientation/10
+    * Anchor
+    * Geo_X
+    * Geo_Y
+    * Horizontal
+    * Vertical
+3. Renames FID to TOID
+4. Adds Primary Key using TOID
+5. Adds a spatial index to the geom columns
+6. Adds a comment to the table of the release from the config/idnex.js file
+
+For the Geochunked data there is an extra step to deduplicate the features that cross tile boundaries.
+
+
+
