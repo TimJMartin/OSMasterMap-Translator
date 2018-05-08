@@ -20,6 +20,8 @@ Folder Structure
         * post_processes - contains an array of SQL file names in the database/sql folder that will be used to post process the data. 
     * TOPO_GEO - this is the Geographic chunked version of OS MasterMap Topography Layer.
         * uses the same options as above 
+    * TOPO_GEO_SIMPLE - this is a stripped down version the Geographic chunked version of OS MasterMap Topography Layer that is created by limiting the data loaded in the GFS file and post processing.
+        * uses the same options as above 
 * database - this uses pg-promise to create the database tables and post process them
     * sql - contains all the required SQL files to create the tables and post processing
 * loader - uses child_process to run the correct OGR2OGR command using the config variables. Uses Progress to show user the loading progress
