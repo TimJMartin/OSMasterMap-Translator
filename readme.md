@@ -30,7 +30,7 @@ Software Requirements
 
 OSMasterMap Translator requires the following
 
-* OGR2OGR - this needs to be installed and be made avaliable in the PATH environment variable or in your bash_profile. You can download windows binaries from [here] (https://www.gisinternals.com/) or for OSX you can get it from [kyngchaos] (http://www.kyngchaos.com/software/frameworks)
+* OGR2OGR - this needs to be installed and be made avaliable in the PATH environment variable or in your bash_profile. You can download windows binaries from [here](https://www.gisinternals.com/) or for OSX you can get it from [kyngchaos](http://www.kyngchaos.com/software/frameworks)
 
 * PostgreSQL/PostGIS - a PostGIS database setup and credentials to access it
 
