@@ -15,7 +15,7 @@ const config = {
         ogr_format: "/vsigzip/",
         schema_name: "osmm_topo",
         update_schema: "",
-        post_processes: ['TOPO_NONGEO_SIMPLE_PostProcess_BoundaryLine.sql', 'TOPO_NONGEO_SIMPLE_PostProcess_CartographicSymbol.sql', 'TOPO_NONGEO_SIMPLE_PostProcess_CartographicText.sql', 'TOPO_NONGEO_SIMPLE_PostProcess_TopographicArea.sql', 'TOPO_NONGEO_SIMPLE_PostProcess_TopographicLine.sql', 'TOPO_NONGEO_SIMPLE_PostProcess_TopographicPoint.sql']
+        post_processes: ['TOPO_NONGEO_PostProcess_BoundaryLine.sql', 'TOPO_NONGEO_PostProcess_CartographicSymbol.sql', 'TOPO_NONGEO_PostProcess_CartographicText.sql', 'TOPO_NONGEO_PostProcess_TopographicArea.sql', 'TOPO_NONGEO_PostProcess_TopographicLine.sql', 'TOPO_NONGEO_PostProcess_TopographicPoint.sql']
     },
     TOPO_NONGEO_SIMPLE: { 
         source_path: "",
