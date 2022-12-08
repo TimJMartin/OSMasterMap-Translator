@@ -1,39 +1,38 @@
 'use strict';
-const async = require('async');
-const promise = require('bluebird');
+import async from 'async';
+import promise from 'bluebird';
+import path from 'path';
+import appRoot from 'app-root-path';
 const options = {
     promiseLib: promise,
     error: function (error, e) {
     },
     noWarnings: true
 };
-const QueryFile = require('pg-promise').QueryFile;
-const pgp = require('pg-promise')(options);
-const path = require('path');
-const logger = require('./../logger'); 
+import pgPromise from 'pg-promise';
+const QueryFile = pgPromise.QueryFile;
+const pgp = pgPromise(options);
+import logger from "./../logger/index.js" 
+import configFile from "./../config/index.js";
 
-const database = module.exports = {};
+let database = {}
 
-function createSQL(file, schema_name) {
-    const fullPath = path.join(__dirname, file); // generating full path;
+function createSQL(sqlPath, schema_name) {
+    // const fullPath = path.join(__dirname, file); // generating full path;
     const options = {
         minify: true,
         params: {
             schema: schema_name
         }
     };
-    const qf = new QueryFile(fullPath, options);
+    const qf = new QueryFile(sqlPath, options);
     if (qf.error) {
         console.error(qf.error);
     }
     return qf;
 }
 
-
-let post_process;
-
 function postSQL(file, schema_name, release) {
-    const fullPath = path.join(__dirname, file); // generating full path;
     const options = {
         minify: true,
         params: {
@@ -41,47 +40,38 @@ function postSQL(file, schema_name, release) {
             release, release
         }
     };
-    const qf = new QueryFile(fullPath, options);
+    const qf = new QueryFile(file, options);
     if (qf.error) {
         console.error(qf.error);
     }
     return qf;
 }
 
-function postSQL(file, schema_name, release, update_schema) {
-    const fullPath = path.join(__dirname, file); // generating full path;
-    const options = {
-        minify: true,
-        params: {
-            schema: schema_name,
-            release, release,
-            update_schema: update_schema
-        }
-    };
-    const qf = new QueryFile(fullPath, options);
-    if (qf.error) {
-        console.error(qf.error);
-    }
-    return qf;
-}
-
-database.createTable = function (database_connection, update_product, schema_name, callback) {
-  var create_table = createSQL('sql/' + update_product + '_CreateTables.sql', schema_name);
+database.createTable = function (update_product, callback) {
+    const schema_name = configFile[update_product].schema_name
+    let sqlPath = `${appRoot}/database/sql/${update_product}_CreateTables.sql`
+  const create_table = createSQL(sqlPath, schema_name);
   logger.log('info', 'Starting to create database tables');
-  var db = pgp(database_connection);
+  const db = pgp(configFile.database_connection);
   db.any(create_table)
     .then(result=> {
         logger.log('info', 'Finished creating database tables');
-        callback(["created", db]);
+        callback('created')
     })
     .catch(error=> {
         logger.log('error', 'Error when creating database tables', error.message);
         callback(error.message);
     })
+    .finally(function () {
+        pgp.end();
+      });
 };
 
-database.postProcess = function (db, file, schema_name, release, update_schema, callback) {
-  var post_process = postSQL('sql/' + file, schema_name, release, update_schema);
+database.postProcess = function (file, callback) {
+    const schema_name = configFile[configFile.update_product].schema_name
+    let sqlPath = `${appRoot}/database/sql/${file}`
+    const post_process = postSQL(sqlPath, schema_name, configFile.release);
+    const db = pgp(configFile.database_connection);
   db.any(post_process)
     .then(result=> {
       callback("processed");
@@ -94,3 +84,4 @@ database.postProcess = function (db, file, schema_name, release, update_schema, 
       pgp.end();
     });
 };
+export default database

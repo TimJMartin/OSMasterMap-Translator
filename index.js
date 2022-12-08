@@ -1,86 +1,146 @@
-const config = require('./config')
-const logger = require('./logger')
-const async = require('async')
-const database = require('./database')
-const klaw = require('klaw')
-const prettyMs = require('pretty-ms')
-const path = require('path')
-const loader = require('./loader')
+'use strict'
+//NPM Modules
+import async from 'async';
+import appRoot from 'app-root-path';
+import dayjs from 'dayjs';
+import jsonfile from 'jsonfile';
+import prettyMS from 'pretty-ms';
+import fs from 'fs-extra';
+import os from 'os';
+import path from 'path';
+import klaw from 'klaw'
 
+//Custom Modules
+import logger from "./logger/index.js";
+import configFile from "./config/index.js";
+import database from "./database/index.js";
+import loader from "./loader/index.js";
 
-const translateData = () => {
-    //Top Level Variables
-    const start = new Date();
-    const update_product = config.update_product;
-    const database_connection = config.database_connection;
-    const working_directory = config.working_directory;
-    const release = config.release;
-    let db;//Empty database object that is reused for creating database tables and then post processing
+//Globals
+const todaysDate = dayjs().format('YYYY-MM-DD');
+const startTime = dayjs();
+const logFileFolder = `${appRoot}/logs`;
+let logFile = {};
 
-    //Update Product Variables
-    const source_directory = config[update_product].source_path;
-    const file_extension = config[update_product].file_extension;
-    const schema_name = config[update_product].schema_name;
-    const update_schema = config[update_product].update_schema;
-    const ogr_format = config[update_product].ogr_format;
-    const postProcesses = config[update_product].post_processes;
-
-    
-    async.waterfall([
-        function(callback) {
-            logger.log('info', `Starting to translate ${update_product}`);
-            database.createTable(database_connection, update_product, schema_name, function(response) {
-                db = response[1];
-                if (response[0] === 'created') {
-                    callback(null, response);
+const run = () => {
+    let files = [];
+    async.series([
+            /*
+            Setup working folder stuff and copy from sourcePath
+            */
+           function (callback) {
+                try {
+                    fs.emptyDirSync(logFileFolder)
+                    logger.log('info', `Processing ${configFile.update_product}`);
+                    console.log(`Starting to process data on ${todaysDate} at ${startTime}`);
+                    logger.log('info', `Starting to process data on ${todaysDate} at ${startTime}`);
+                    //Add logfile metadata
+                    logFile.startTime = startTime;
+                    logFile.date = todaysDate;
+                    logFile.arch = os.arch();
+                    logFile.hostname = os.hostname();
+                    logFile.platform = os.platform();
+                    logFile.release = os.release();
+                    logFile.username = os.userInfo().username;
+                    logger.log('info', `Successful Setup for Product: ${configFile.update_product}`);
+                    callback()
+                } catch (error) {
+                    logger.log('error', `Error during setup for product: ${configFile.update_product}`);
+                    callback(error)
                 }
-            }); 
-        },
-        function(response, callback) {
-            logger.log('info', 'Listing files in source directory');
-            var files = [];
-            klaw(source_directory)
-                .on('data', function (item) {
-                    if(path.extname(item.path) === file_extension) {
-                        files.push(item.path)
+            },
+            /*
+            Create database tables to load data into
+            */
+            function (callback) {
+                logger.log('info', `Creating database tables for ${configFile.update_product}`);                            
+                database.createTable(configFile.update_product, function (response) {
+                    if (response === 'created') {
+                        logger.log('info', `Created database tables for ${configFile.update_product}`);
+                        callback()
+                    } else {
+                        logger.log('error', `Error creating database tables for ${configFile.update_product}`);
+                        callback(`Error creating database tables for ${configFile.update_product}`)
                     }
                 })
-                .on('end', function () {
-                    logger.log('info', `Found ${files.length} files`);
-                    callback(null, files);
-                })
-        },
-        function(files, callback) {
-            loader.loadPostGIS(database_connection, update_product, files, schema_name, ogr_format, function(response) {
-                if (response === 'loaded') {
-                    callback(null, response);
-                }
-            });
-        }, 
-        function(response, callback) {
-            logger.log('info', 'Post processing database tables');
-            async.each(postProcesses, function(file, callback) {
-                database.postProcess(db, file, schema_name, release, update_schema, function(response) {
-                    if (response === 'processed') {
-                    callback();
+            },
+            function(callback) {
+                logger.log('info', 'Listing files in source directory');
+                const sourceDir = configFile[configFile.update_product].source_path
+                klaw(sourceDir)
+                    .on('data', function (item) {
+                        if(path.extname(item.path) === '.gz') {
+                            files.push(item.path)
+                        }
+                    })
+                    .on('error', (err, item) => {
+                        console.log('klaw error: ', item);
+                        throw new Error(`klawError: ${err}`);
+                      })
+                    .on('end', function () {
+                        logger.log('info', `Found ${files.length} files`);
+                        callback();
+                    })
+            },
+            function(callback) {
+                loader.loadPostGIS(files, function(response) {
+                    if (response === 'loaded') {
+                        logger.log('info', `Successfully loaded ${configFile.update_product} data`);
+                        callback();
+                    } else {
+                        logger.log('error', `Error loading ${configFile.update_product} data`);
+                        callback(`Error loading ${configFile.update_product} data`)
                     }
                 });
-            }, function(err) {
-                if( err ) {
-                    logger.log('error', err);
-                } else {
-                    logger.log('info', 'Finished post processing database tables');
-                    callback(null, response);
-                }
-            });
-        },  
-
-    ], function(err, result) {
-        var end = new Date() - start;
-        logger.log('info', 'Finished processing in ', prettyMs(end));
-    });
+            }, 
+            function(callback) {
+                logger.log('info', 'Post processing database tables');
+                async.each(configFile[configFile.update_product].post_processes, function(file, callback) {
+                    console.log(file)
+                    database.postProcess(file, function(response) {
+                        if (response === 'processed') {
+                            logger.log('info', `Successfully post processed ${configFile.update_product} data`);
+                            callback();
+                        } else {
+                            logger.log('error', `Error post processing ${configFile.update_product} data`);
+                            callback(`Error post processing ${configFile.update_product} data`)
+                        }
+                    });
+                }, function(err) {
+                    if( err ) {
+                        logger.log('error', err);
+                    } else {
+                        logger.log('info', 'Finished post processing database tables');
+                        callback();
+                    }
+                });
+            }
+    ], // Series finish
+        function (error, results) {
+            if (error) {
+                console.error(error)
+                logger.log('error', error);
+                const endTime = dayjs();
+                const timeTaken = endTime - startTime;
+                console.log(`Finished processing  data on ${todaysDate} at ${endTime} in ${prettyMS(timeTaken, {verbose: true})}`);
+            } else {
+                const endTime = dayjs();
+                logFile.endTime = endTime
+                const timeTaken = endTime - startTime;
+                logFile.timeTaken = prettyMS(timeTaken, {
+                    verbose: true
+                })
+                const logFilePath = `${logFileFolder}/OSDT_${todaysDate}.json`
+                jsonfile.writeFile(logFilePath, logFile, {
+                    spaces: 2
+                }, function (error) {
+                    if (error) {
+                        console.error(error)
+                    }
+                    console.log(`Finished processing data on ${todaysDate} at ${endTime} in ${prettyMS(timeTaken, {verbose: true})}`);
+                    logger.log('info', `Finished processing data on ${todaysDate} at ${endTime} in ${prettyMS(timeTaken, {verbose: true})}`);
+                })
+            }
+        });
 }
-
-translateData();
-
-
+run();

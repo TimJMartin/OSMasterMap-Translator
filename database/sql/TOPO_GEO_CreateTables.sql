@@ -19,7 +19,7 @@ CREATE TABLE ${schema~}.boundaryline
   make character varying,
   physicallevel integer,
   physicalpresence character varying,
-  geom geometry(MultiLineString,27700)
+  geom geometry(Geometry,27700)
 )
 WITH (
   OIDS=FALSE
@@ -118,7 +118,7 @@ CREATE TABLE ${schema~}.topographicline
   make character varying,
   physicallevel integer,
   physicalpresence character varying,
-  geom geometry(LineString,27700)
+  geom geometry(Geometry,27700)
 )
 WITH (
   OIDS=FALSE
